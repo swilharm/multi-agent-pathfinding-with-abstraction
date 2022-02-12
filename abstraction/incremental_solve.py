@@ -16,9 +16,12 @@ class Abstraction(Application):
         for atom in model.symbols(atoms=True):
             if(atom.match("numVertices", 1)):
                 self.num_vertices = atom.arguments[0].number
+    
+    def print_with_periods(self, model):
+        print(*(str(atom)+'.' for atom in model.symbols(shown=True)))
 
     def main(self, ctl, files):
-        # Ground only the instance toghther with rule
+        # Ground only the instance together with rule
         # numVertices(N) :- N = #count{I : vertex(I)}.
         # to extract the number of vertices for the upper bound
         ctl = Control(["--warn", "no-atom-undefined"])
@@ -37,7 +40,7 @@ class Abstraction(Application):
                 ctl.load(f)
             ctl.ground([("base", [])])
             ctl.ground([("abstraction", [Number(centers)])])
-            ret = ctl.solve(on_model=print)
+            ret = ctl.solve(on_model=self.print_with_periods)
             centers += 1
 
 # Run application with commandline arguments

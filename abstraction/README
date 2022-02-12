@@ -1,3 +1,4 @@
-python incremental_solve.py ../instances/snake9x9.lp grid_to_graph.lp
+
 python incremental_solve.py ../instances/snake9x9.lp grid_to_graph.lp radius_abstraction_on_graph.lp
-python incremental_solve.py ../instances/snake9x9.lp grid_to_graph.lp radius_abstraction_on_graph.lp graph_to_grid.lp
+
+python generate_abstractions.py ../instances/snake9x9.lp grid_to_graph.lp radius_abstraction_on_graph.lp

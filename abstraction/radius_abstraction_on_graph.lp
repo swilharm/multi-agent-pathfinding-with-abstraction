@@ -8,7 +8,6 @@ numVertices(N) :- N = #count{I : vertex(I)}.
 %#const n = 17.
 #program abstraction(n).
 
-
 {center(I): vertex(I)} = n.
 
 group(C,C) :- center(C).
@@ -17,12 +16,13 @@ group(C,V) :- center(C), vertex(V), edge(C,V), n==1.
 
 % vertex cannot have 0 group or more than 1 group
 :- vertex(V), not group(_,V).
-:- vertex(V), #count{(C):group(C,V)} > 1.
+:- vertex(V), #count{C: group(C,V)} > 1.
 
 % edge
 center_edge(C1,C2) :- group(C1,V1), vertex(V1), edge(V1,V2), group(C2,V2), vertex(V2), C1!=C2, V1!=V2.
 center_edge(C1,C2) :- center_edge(C2,C1).
 
+#external grid.
 #show.
 #show center_edge(C1,C2) : center_edge(C1,C2), not grid.
 #show center(I) : center(I), not grid.
