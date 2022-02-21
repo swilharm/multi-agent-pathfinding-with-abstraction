@@ -29,5 +29,13 @@ center_edge(C1,C2) :- center_edge(C2,C1).
 #show group(C,V) : group(C,V), not grid.
 
 % Alternative output that can be fed into the next iteration
-%#show edge(V1,V2) : center_edge(V1,V2), not grid.
 %#show vertex(V) : center(V), not grid.
+%#show edge(V1,V2) : center_edge(V1,V2), not grid.
+
+% Output for clingraph
+%#show init(object(node,I),value(at,(X,Y))) : init(object(node,I),value(at,(X,Y))).
+%#show center_edge(C1,C2) : center_edge(C1,C2), not grid.
+%#show center(I) : center(I), not grid.
+%#show group(C,V) : group(C,V), not grid.
+%#show vertex(V) : vertex(V), not grid.
+%#show edge(V1,V2) : edge(V1,V2), not grid.

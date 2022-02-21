@@ -1,0 +1,22 @@
+#script (python)
+from clingo.symbol import String
+
+def pos(x,y):
+    return String(f"{str(x)},{str(y)}!")
+
+#end.
+
+#const g = display.
+
+v_graph(g).
+
+v_node(ID,g) :- vertex(ID).
+v_attr(node,ID,pos,@pos(X,15-Y)):- vertex(ID), init(object(node,ID),value(at,(X,Y))).
+
+v_edge((A,B),g) :- edge(A,B).
+
+#show.
+#show v_graph/1.
+#show v_node/2.
+#show v_edge/2.
+#show v_attr/4.
