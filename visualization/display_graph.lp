@@ -8,10 +8,12 @@ def pos(x,y):
 
 #const g = display.
 
+maxY(MY) :- init(object(node,_),value(at,(_,MY))), MY=#max{Y : init(object(node,ID),value(at,(X,Y)))}.
+
 v_graph(g).
 
 v_node(ID,g) :- vertex(ID).
-v_attr(node,ID,pos,@pos(X,15-Y)):- vertex(ID), init(object(node,ID),value(at,(X,Y))).
+v_attr(node,ID,pos,@pos(X,MY-Y)):- init(object(node,ID),value(at,(X,Y))), maxY(MY), group(_,ID).
 
 v_edge((A,B),g) :- edge(A,B).
 
