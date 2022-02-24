@@ -1,7 +1,7 @@
 #script (python)
 from clingo.symbol import String
 
-colors = ["aqua","aquamarine","blue","blueviolet","brown","cadetblue","chartreuse","chocolate","coral","cornflowerblue","crimson","cyan","darkcyan","darkgoldenrod","darkgreen","darkmagenta","darkolivegreen","darkorange","darkorchid","darkred","darkslateblue","darkturquoise","darkviolet","deeppink","deepskyblue","dodgerblue","firebrick","forestgreen","fuchsia","gold","green","greenyellow","hotpink","indianred","indigo","lime","magenta","maroon","navy","olive","orange","orangered","orchid","purple","red","royalblue","saddlebrown","salmon","sandybrown","seagreen","sienna","slateblue","springgreen","steelblue","teal","tomato","turquoise","violet","yellow","yellowgreen"]
+colors = ['darkcyan', 'orange', 'lime', 'blue', 'deeppink', 'forestgreen', 'darkblue', 'maroon3', 'red', 'yellow', 'burlywood', 'aqua', 'fuchsia', 'darkslategray', 'seagreen', 'darkred', 'olive', 'darkorange', 'mediumorchid', 'mediumspringgreen', 'darksalmon', 'dodgerblue', 'palegoldenrod', 'plum', 'lightskyblue', 'darkolivegreen', 'saddlebrown', 'olivedrab', 'slategray', 'darkslateblue', 'green', 'mediumseagreen', 'rosybrown', 'darkgoldenrod', 'steelblue', 'chocolate', 'yellowgreen', 'lightseagreen', 'indianred', 'indigo', 'limegreen', 'darkseagreen', 'darkmagenta', 'tan', 'darkorchid', 'gold', 'mediumblue', 'crimson', 'deepskyblue', 'greenyellow', 'tomato', 'orchid', 'thistle', 'khaki', 'lightgreen', 'lightblue', 'mediumslateblue', 'lightsalmon', 'aquamarine', 'hotpink', 'sienna', 'brown', 'maroon2', 'midnightblue', 'firebrick', 'cadetblue', 'lightslategray', 'rebeccapurple', 'darkkhaki', 'peru', 'goldenrod', 'purple2', 'mediumturquoise', 'mediumaquamarine', 'orangered', 'darkturquoise', 'slateblue', 'mediumvioletred', 'lawngreen', 'turquoise', 'darkviolet', 'springgreen', 'royalblue', 'sandybrown', 'lightcoral', 'lightsteelblue', 'coral', 'palevioletred', 'salmon', 'powderblue', 'skyblue', 'violet']
 index = 0
 mapping = dict()
 
@@ -22,9 +22,9 @@ maxY(MY) :- init(object(node,_),value(at,(_,MY))), MY=#max{Y : init(object(node,
 
 v_graph(g).
 
-v_node(ID,g) :- init(object(node,ID),_), group(_,ID).
-v_attr(node,ID,pos,@pos(X,MY-Y)):- init(object(node,ID),value(at,(X,Y))), maxY(MY), group(_,ID).
-v_attr(node,ID,style,"filled"):- init(object(node,ID),_), group(_,ID).
+v_node(ID,g) :- vertex(ID).
+v_attr(node,ID,pos,@pos(X,MY-Y)):- vertex(ID), init(object(node,ID),value(at,(X,Y))), maxY(MY).
+v_attr(node,ID,style,"filled"):- vertex(ID).
 v_attr(node,ID,fillcolor,@color(C)) :- group(C,ID).
 v_attr(node,ID,penwidth,"5.0") :- center(ID).
 
