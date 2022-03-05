@@ -75,17 +75,8 @@ class Abstraction(Application):
             self.num_vertices = centers-1
             self.abstract_level += 1
         
-        
-        # print('graph_full:')
-        # print(self.graph_full)
-        # print('output:')
-        # print(self.output)
-        # print('start_goaL:')
-        # print(self.start_and_goal)
-        # find path between two vertices (QuickPath approach)
-        # print("Find a path from vertex ",1," to vertex ",2,":")
-        (v1,v2) = (1,43)
-        print("Find the merge parent (and in which level is the merge) for  for vertex ",v1," to vertex ",v2,":")
+        (s_vertex,s_index,g_vertex,g_index) = (9,2,4,2)
+        print("Find the merge parent (and in which level is the merge) for  for vertex ",s_vertex,"(id:",s_index,") to vertex ",g_vertex,"(id:",g_index,"):")
         ctl = Control(["--warn", "no-atom-undefined"])
         for f in files:
             if not "grid_to_graph" in f:
@@ -100,9 +91,8 @@ class Abstraction(Application):
         ctl.ground([("abstracted_graph", [])])
         ctl.ground([("graph", [])])
         # hardcoded single agent start and goal
-        ctl.ground([("start_and_goal", [Number(v1),Number(v2)])])
+        ctl.ground([("start_and_goal", [Number(s_vertex),Number(s_index),Number(g_vertex),Number(g_index)])])
         # ctl.ground([("num_of_agent", [Number(1)])])
-        # get the parent that merged them
         ctl.solve(on_model=self.print_with_periods)
 
 # Run application with commandline arguments

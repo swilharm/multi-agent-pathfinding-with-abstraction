@@ -3,4 +3,8 @@ python incremental_solve.py ../instances/snake9x9.lp grid_to_graph.lp radius_abs
 
 python generate_abstractions.py ../instances/snake9x9.lp grid_to_graph_8.lp radius_abstraction_on_graph.lp
 
-python generate_abstractions_and_solve.py ../instances/snake9x9.lp grid_to_graph_8.lp radius_abstraction_on_graph.lp solve.lp
+Find single path when given start and goal:
+python generate_abstractions_and_solve.py ../instances/snake9x9.lp grid_to_graph_8.lp radius_abstraction_on_graph.lp find_one_path.lp
+
+Identifying conlicts:
+clingo solve_multi_path.lp
