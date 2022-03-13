@@ -1,0 +1,1 @@
+clingo ..\display_graph.lp 0.lp -c g=test8_0b --outf=2 | clingraph --json --render --format=png --engine=neato --dir=. --select-model=1 --prefix=v_ -q
