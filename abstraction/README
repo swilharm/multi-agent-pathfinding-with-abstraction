@@ -8,3 +8,6 @@ python generate_abstractions_and_solve.py ../instances/snake9x9.lp grid_to_graph
 
 Identifying conlicts:
 clingo solve_multi_path.lp
+
+Intuitive deletion solver:
+python intuitive_deletion_solve.py -i ..\instances\snake9x9.lp -g grid_to_graph_8.lp -a radius_abstraction_on_graph.lp -s solve.lp

@@ -13,21 +13,24 @@ class Abstraction(Application):
 
     def get_num_vertices(self, model):
         '''Helper function that extracts numVertices atom'''
+        self.graph = ""
         for atom in model.symbols(atoms=True):
             if(atom.match("numVertices", 1)):
                 self.num_vertices = atom.arguments[0].number
-        self.graph = ""
-        for atom in model.symbols(atoms=True):
-            if atom.match("vertex", 1) or atom.match("edge", 2):
-                self.graph += str(atom)+'.'
+            elif atom.match("vertex", 1) or atom.match("edge", 2) or atom.match("start", 2) or atom.match("goal", 2):
+                self.graph += str(atom)+'. '
     
     def extract_abstract_graph(self, model):
         self.graph = ""
         for atom in model.symbols(atoms=True):
             if atom.match("center", 1):
-                self.graph += str(Function("vertex", atom.arguments))+'.'
+                self.graph += str(Function("vertex", atom.arguments))+'. '
             elif atom.match("center_edge", 2):
-                self.graph += str(Function("edge", atom.arguments))+'.'
+                self.graph += str(Function("edge", atom.arguments))+'. '
+            elif atom.match("center_start", 2):
+                self.graph += str(Function("start", atom.arguments))+'. '
+            elif atom.match("center_goal", 2):
+                self.graph += str(Function("goal", atom.arguments))+'. '
         self.print_with_periods(model)
     
     def print_with_periods(self, model):

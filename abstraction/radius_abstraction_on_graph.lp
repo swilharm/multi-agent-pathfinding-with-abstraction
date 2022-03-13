@@ -22,6 +22,10 @@ group(C,V) :- center(C), vertex(V), edge(C,V), n==1.
 center_edge(C1,C2) :- group(C1,V1), vertex(V1), edge(V1,V2), group(C2,V2), vertex(V2), C1!=C2, V1!=V2.
 center_edge(C1,C2) :- center_edge(C2,C1).
 
+% start and goal
+center_start(R,C) :- start(R,V), group(C,V).
+center_goal(G,C) :- goal(G,V), group(C,V).
+
 #external grid.
 #show.
 #show center_edge(C1,C2) : center_edge(C1,C2), not grid.
@@ -33,9 +37,13 @@ center_edge(C1,C2) :- center_edge(C2,C1).
 %#show edge(V1,V2) : center_edge(V1,V2), not grid.
 
 % Output for clingraph
-%#show init(object(node,I),value(at,(X,Y))) : init(object(node,I),value(at,(X,Y))).
-%#show center_edge(C1,C2) : center_edge(C1,C2), not grid.
-%#show center(I) : center(I), not grid.
-%#show group(C,V) : group(C,V), not grid.
-%#show vertex(V) : vertex(V), not grid.
-%#show edge(V1,V2) : edge(V1,V2), not grid.
+#show init(object(node,I),value(at,(X,Y))) : init(object(node,I),value(at,(X,Y))), clingraph.
+#show center_edge(C1,C2) : center_edge(C1,C2), clingraph.
+#show center(I) : center(I), clingraph.
+#show group(C,V) : group(C,V), clingraph.
+#show center_start(R,V) : center_start(R,V), clingraph.
+#show center_goal(G,V) : center_goal(G,V), clingraph.
+#show vertex(V) : vertex(V), clingraph.
+#show edge(V1,V2) : edge(V1,V2), clingraph.
+#show start(R,V) : start(R,V), clingraph.
+#show goal(G,V) : goal(G,V), clingraph.
