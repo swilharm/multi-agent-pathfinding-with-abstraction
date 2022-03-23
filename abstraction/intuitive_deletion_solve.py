@@ -1,3 +1,4 @@
+from graph import Graph
 import sys, os, argparse, time
 from typing import Optional
 from clingo.application import Application, clingo_main
@@ -6,48 +7,13 @@ from clingo.solving import SolveResult
 from clingo.symbol import Function, Number
 
 class Abstraction(Application):
-    def __init__(self, name):
-        self.program_name = name
-        self.num_vertices = 0
+    def __init__(self):
         self.graphs = []
         self.groups = []
         self.visited = dict()
-        self.goal_assignments = dict()
-        self.goal_assignments[0] = 0
+        self.assignments = dict()
+        self.assignments[0] = (0,0,0,0)
         self.path = []
-
-    def get_num_vertices(self, model):
-        '''Extracts numVertices atom and the initial graph'''
-        self.graph = ""
-        self.graphs.append(set())
-        for atom in model.symbols(atoms=True):
-            if(atom.match("numVertices", 1)):
-                self.num_vertices = atom.arguments[0].number
-            elif atom.match("vertex", 1) or atom.match("edge", 2) or atom.match("start", 2) or atom.match("goal", 2):
-                self.graph += str(atom)+'. '
-                self.graphs[-1].add(atom)
-    
-    def extract_abstract_graph(self, model):
-        '''Extracts abstracted graph'''
-        self.graph = ""
-        self.graphs.append(set())
-        self.groups.append(dict())
-        for atom in model.symbols(atoms=True):
-            if atom.match("center", 1):
-                self.graph += str(Function("vertex", atom.arguments))+'. '
-                self.graphs[-1].add(Function("vertex", atom.arguments))
-            elif atom.match("center_edge", 2):
-                self.graph += str(Function("edge", atom.arguments))+'. '
-                self.graphs[-1].add(Function("edge", atom.arguments))
-            elif atom.match("center_start", 2):
-                self.graph += str(Function("start", atom.arguments))+'. '
-                self.graphs[-1].add(Function("start", atom.arguments))
-            elif atom.match("center_goal", 2):
-                self.graph += str(Function("goal", atom.arguments))+'. '
-                self.graphs[-1].add(Function("goal", atom.arguments))
-            elif atom.match("group", 2):
-                self.groups[-1][atom.arguments[1].number] = atom.arguments[0].number
-        self.print_with_periods(model)
     
     def extract_path(self, model):
         '''Extracts path through graph'''
@@ -59,82 +25,57 @@ class Abstraction(Application):
                 if robot not in self.visited:
                     self.visited[robot] = set()
                 self.visited[robot].add(vertex)
-            elif atom.match("assigned", 3):
-            # Take not of goal assignments
-                robot = atom.arguments[0].number
-                vertex = atom.arguments[2].number
-                self.goal_assignments[robot] = vertex
+            elif atom.match("assigned", 4):
+                # Take note of goal assignments
+                self.assignments[atom.arguments[0].number] = (atom.arguments[0].number, atom.arguments[1].number, atom.arguments[2].number, atom.arguments[3].number)
         self.path.extend(model.symbols(shown=True))
     
     def print_with_periods(self, model):
         print(*(str(atom)+'.' for atom in model.symbols(shown=True)))
 
     def main(self, args):
-        # Ground only the instance together with rule
-        # numVertices(N) :- N = #count{I : vertex(I)}.
-        # to extract the number of vertices for the upper bound
         start_abstract = time.time()
-        ctl = Control(["--warn", "no-atom-undefined"])
-        ctl.load(args.instance)
-        ctl.load(args.graph)
-        ctl.load(args.abstraction)
-        ctl.ground([("base", [])])
-        ctl.solve(on_model=self.get_num_vertices)
-        
-        while(self.num_vertices > 1):
-            print("\nGenerating abstraction level", len(self.graphs))
-            # Iteratively increase the number of centers and try to find a solution
-            centers = int(self.num_vertices/5) # at most 5 nodes per abstracted node
-            ret = None
-            while (centers <= self.num_vertices and (ret is None or not ret.satisfiable)):
-                print("Trying to abstract with", centers, "centers")
-                ctl = Control(["--warn", "no-atom-undefined"])
-                ctl.load(args.abstraction)
-                ctl.load(args.instance)
-                ctl.add("graph", [], self.graph)
-                ctl.ground([("base", [])])
-                ctl.ground([("graph", [])])
-                ctl.ground([("abstraction", [Number(centers)])])
-                ret = ctl.solve(on_model=self.extract_abstract_graph)
-                centers += 1
-            self.num_vertices = centers-1
+        self.graphs.append(Graph.build_graph_from_instance(args.instance, "circles"))
+        self.graphs[-1].to_png()
+        i = 1
+        while len(self.graphs[-1].vertices) > 1:
+            print("\nGenerating abstraction level", i)
+            i += 1
+            self.graphs.append(self.graphs[-1].abstract_graph(args.abstraction))
+            self.graphs[-1].safe()
+            self.graphs[-1].to_png()
         end_abstract = time.time()
-            
+        
         #SOLVE
         start_solve = time.time()
         for level in range(len(self.graphs)-1, -1, -1):
             print("\nFinding paths on abstraction level", level)
-            goals = set(self.goal_assignments.values())
-            # Split planning into goal vertices and plan robots together that are moving to the same vertex
-            for goal_vertex in goals:
+            assignments = dict()
+            for assignment in self.assignments.values():
+                if (assignment[1],assignment[3]) not in assignments:
+                    assignments[(assignment[1],assignment[3])] = []
+                assignments[(assignment[1],assignment[3])].append(assignment)
+            # Split planning into start/goal combinations and plan robots together that are moving together
+            for start_goal_assignment in assignments:
                 ctl = Control(["--warn", "no-atom-undefined"])
                 ctl.load(args.solver)
+                #ctl.load(args.instance)
                 if level == len(self.graphs)-1:
                     # At maximum abstraction, load full graph
                     # Bit of a dirty trick by adding a zero assignment just so this loop is entered on the highest level
-                    self.goal_assignments.pop(0)
-                    graph = ''.join(str(atom)+'.' for atom in self.graphs[level])
+                    self.assignments.pop(0)
+                    graph = self.graphs[level].to_asp()
                 else:
                     # Determine all robots with the selected goal vertex
-                    robots = set(item[0] for item in self.goal_assignments.items() if item[1]==goal_vertex)
-                    graph_atoms = set()
-                    for atom in self.graphs[level]:
-                        # Assemble graph only with the vertices and edges that were visited by these robots on the higher abstraction
-                        if atom.match("vertex", 1):
-                            for robot in robots:
-                                if self.groups[level][atom.arguments[0].number] in self.visited[robot]:
-                                    graph_atoms.add(str(atom))
-                        elif atom.match("edge", 2):
-                            for robot in robots:
-                                if self.groups[level][atom.arguments[0].number] in self.visited[robot] and self.groups[level][atom.arguments[1].number] in self.visited[robot]:
-                                    graph_atoms.add(str(atom))
-                        elif atom.match("start", 2):
-                            if atom.arguments[0].number in robots:
-                                graph_atoms.add(str(atom))
-                        elif atom.match("goal", 2):
-                            if self.groups[level][atom.arguments[1].number] == goal_vertex:
-                                graph_atoms.add(str(atom))
-                    graph = '. '.join(graph_atoms)+'.'
+                    robots = [assignment[0] for assignment in assignments[start_goal_assignment]]
+                    goals = [assignment[2] for assignment in assignments[start_goal_assignment]]
+                    visited = set()
+                    for robot in robots:
+                        for vertex in self.visited[robot]:
+                            visited.update(self.graphs[level+1].child_vertices[vertex])
+                    graph = self.graphs[level].get_subgraph(list(visited), robots, goals).to_asp()
+                    #print({assignment[0]: (assignment[1], assignment[3]) for assignment in assignments[start_goal_assignment]})
+                    #print(graph)
                 ctl.add("graph", [], graph)
                 step, ret = 0, None
                 # Incremental solve the subproblem
@@ -182,4 +123,4 @@ def parse():
     return args
 
 # Run application with commandline arguments
-Abstraction(sys.argv[0]).main(parse())
+Abstraction().main(parse())
