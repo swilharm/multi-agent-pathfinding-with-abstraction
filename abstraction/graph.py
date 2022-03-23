@@ -96,12 +96,12 @@ class Graph():
     
     def to_png(self, path="graphs/"):
         try:
-        os.mkdir(path)
+            os.mkdir(path)
         except OSError as error:
             pass
         with open(path+"/.temp.graph", 'w') as file:
             file.write(self.to_dot())
-        os.system(f"neato .temp.graph -Tpng > {path+self.name+'_'+str(self.level)}.png")
+        os.system(f"neato {path}/.temp.graph -Tpng > {path+self.name+'_'+str(self.level)}.png")
         os.remove(path+"/.temp.graph")
         
     def __str__(self):
