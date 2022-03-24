@@ -1,4 +1,4 @@
-import os
+import os, pickle
 from clingo.control import Control
 from clingo.symbol import Number
 
@@ -54,10 +54,11 @@ class Graph():
                 subgraph.add_goal(goal[0], goal[1])
         return subgraph
         
-    def to_asp(self):
+    def to_asp(self, add_nodes=False):
         asp = ""
-        for vertex, position in self.positions.items():
-            asp += f"node({position[0]},{position[1]},{vertex}). "
+        if add_nodes:
+            for vertex, position in self.positions.items():
+                asp += f"node({position[0]},{position[1]},{vertex}). "
         for vertex in self.vertices:
             asp += f"vertex({vertex}). "
         for edge in self.edges:
@@ -70,9 +71,12 @@ class Graph():
             asp += f"goal({goal[0]},{goal[1]}). "
         return asp
         
-    def safe(self, path="graphs/"):
+    def safe(self, path="graphs/", cache=False):
         with open(path+self.name+'_'+str(self.level)+'.lp', 'w') as file:
-            file.write(self.to_asp().replace(' ', '\n'))
+            file.write(self.to_asp(add_nodes=True).replace(' ', '\n'))
+        if cache:
+            with open(path+self.name+'_'+str(self.level)+'.pickle', 'wb') as file:
+                pickle.dump(self,file)
         
     def to_dot(self):
         dot = "strict graph {\n"
