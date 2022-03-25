@@ -1,99 +1,59 @@
 from graph import Graph
-import sys, os, argparse, time
-from typing import Optional
-from clingo.application import Application, clingo_main
-from clingo.control import Control
-from clingo.solving import SolveResult
-from clingo.symbol import Function, Number
+from solving_step import SolvingStep
+import os, argparse, time, pickle
 
-class Abstraction(Application):
+class Abstraction():
     def __init__(self):
         self.graphs = []
-        self.groups = []
-        self.visited = dict()
-        self.assignments = dict()
-        self.assignments[0] = (0,0,0,0)
-        self.path = []
-    
-    def extract_path(self, model):
-        '''Extracts path through graph'''
-        for atom in model.symbols(atoms=True):
-            if atom.match("at", 3):
-            # Take not of all vertices visited per robot
-                robot = atom.arguments[0].number
-                vertex = atom.arguments[1].number
-                if robot not in self.visited:
-                    self.visited[robot] = set()
-                self.visited[robot].add(vertex)
-            elif atom.match("assigned", 4):
-                # Take note of goal assignments
-                self.assignments[atom.arguments[0].number] = (atom.arguments[0].number, atom.arguments[1].number, atom.arguments[2].number, atom.arguments[3].number)
-        self.path.extend(model.symbols(shown=True))
-    
-    def print_with_periods(self, model):
-        print(*(str(atom)+'.' for atom in model.symbols(shown=True)))
+        self.cached_graphs = []
+        self.solving_steps = dict()
 
     def main(self, args):
+        #ABSTRACT
         start_abstract = time.time()
         self.graphs.append(Graph.build_graph_from_instance(args.instance, "circles"))
         self.graphs[-1].to_png()
         i = 1
         while len(self.graphs[-1].vertices) > 1:
-            print("\nGenerating abstraction level", i)
+            try:
+                with open(f'graphs/circles_{i}.pickle', 'rb') as file:
+                    self.graphs.append(pickle.load(file))
+                print("Found cached abstraction level", i)
+            except FileNotFoundError:
+                print("\nGenerating abstraction level", i)
+                self.graphs.append(self.graphs[-1].abstract_graph(args.abstraction))
+                # Set cache to True to enable abstraction caching
+                self.graphs[-1].safe(cache=False)
+                self.graphs[-1].to_png()
             i += 1
-            self.graphs.append(self.graphs[-1].abstract_graph(args.abstraction))
-            self.graphs[-1].safe()
-            self.graphs[-1].to_png()
         end_abstract = time.time()
+            
         
         #SOLVE
         start_solve = time.time()
-        for level in range(len(self.graphs)-1, -1, -1):
+        print("\nFinding paths on abstraction level", len(self.graphs)-1)
+        solving_step = SolvingStep(len(self.graphs)-1)
+        solving_step.solve(args.solver, self.graphs[-1])
+        self.solving_steps[len(self.graphs)-1] = solving_step
+        for level in reversed(range(len(self.graphs)-1)):
             print("\nFinding paths on abstraction level", level)
-            assignments = dict()
-            for assignment in self.assignments.values():
-                if (assignment[1],assignment[3]) not in assignments:
-                    assignments[(assignment[1],assignment[3])] = []
-                assignments[(assignment[1],assignment[3])].append(assignment)
             # Split planning into start/goal combinations and plan robots together that are moving together
-            for start_goal_assignment in assignments:
-                ctl = Control(["--warn", "no-atom-undefined"])
-                ctl.load(args.solver)
-                #ctl.load(args.instance)
-                if level == len(self.graphs)-1:
-                    # At maximum abstraction, load full graph
-                    # Bit of a dirty trick by adding a zero assignment just so this loop is entered on the highest level
-                    self.assignments.pop(0)
-                    graph = self.graphs[level].to_asp()
-                else:
-                    # Determine all robots with the selected goal vertex
-                    robots = [assignment[0] for assignment in assignments[start_goal_assignment]]
-                    goals = [assignment[2] for assignment in assignments[start_goal_assignment]]
-                    visited = set()
-                    for robot in robots:
-                        for vertex in self.visited[robot]:
-                            visited.update(self.graphs[level+1].child_vertices[vertex])
-                    graph = self.graphs[level].get_subgraph(list(visited), robots, goals).to_asp()
-                    #print({assignment[0]: (assignment[1], assignment[3]) for assignment in assignments[start_goal_assignment]})
-                    #print(graph)
-                ctl.add("graph", [], graph)
-                step, ret = 0, None
-                # Incremental solve the subproblem
-                while (ret is None or not ret.satisfiable):
-                    parts = []
-                    parts.append(("check", [Number(step)]))
-                    if step > 0:
-                        ctl.release_external(Function("query", [Number(step-1)]))
-                        parts.append(("step", [Number(step)]))
-                    else:
-                        parts.append(("graph", []))
-                        parts.append(("base", []))
-                    ctl.ground(parts)
-                    ctl.assign_external(Function("query", [Number(step)]), True)
-                    ret, step = ctl.solve(on_model=self.extract_path), step+1
-            # Print out combined paths
-            print(*(str(atom)+'.' for atom in self.path))
-            self.path = []
+            previous_step = self.solving_steps[level+1]
+            solving_step = SolvingStep(level)
+            self.solving_steps[level] = solving_step
+            for start_goal in previous_step.assignments:
+                # Determine all robots with the selected goal vertex
+                robots, goals = zip(*previous_step.assignments[start_goal])
+                visited = set()
+                for robot in robots:
+                    for vertex in previous_step.visited[robot]:
+                        visited.update(self.graphs[level+1].child_vertices[vertex])
+                # Generate corresponding subgraph
+                graph = self.graphs[level].get_subgraph(list(visited), robots, goals)
+                # Solve subproblem and add to plan
+                solving_step.solve(args.solver, graph)
+            # Print out combined paths in right order
+            print(*(str(atom)+'.' for atom in sorted(solving_step.plan, key=lambda move: (move.arguments[3].number, move.arguments[0].number))))
         end_solve = time.time()
         
         print(f"Abstraction: {end_abstract-start_abstract:.3f}s, Solving: {end_solve-start_solve:.3f}s, Total: {end_solve-start_abstract:.3f}s")
