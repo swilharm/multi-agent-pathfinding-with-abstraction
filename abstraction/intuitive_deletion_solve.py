@@ -11,17 +11,21 @@ class Abstraction():
     def main(self, args):
         #ABSTRACT
         start_abstract = time.time()
+        # assumping there's only one connected subgraph in this instance (if the value > 1, means there are disjoint subgraphs)
+        disjoint_graphs = 1
         self.graphs.append(Graph.build_graph_from_instance(args.instance, "circles"))
         self.graphs[-1].to_png()
         i = 1
-        while len(self.graphs[-1].vertices) > 1:
+        # stop abstracting when there're no more edges between the abstracted vertices (to allow abstraction of disjoint graphs)
+        while len(self.graphs[-1].vertices) > disjoint_graphs:
             try:
                 with open(f'graphs/circles_{i}.pickle', 'rb') as file:
                     self.graphs.append(pickle.load(file))
                 print("Found cached abstraction level", i)
             except FileNotFoundError:
                 print("\nGenerating abstraction level", i)
-                self.graphs.append(self.graphs[-1].abstract_graph(args.abstraction))
+                disjoint_graphs, abstracted_graph = self.graphs[-1].abstract_graph(args.abstraction)
+                self.graphs.append(abstracted_graph)
                 # Set cache to True to enable abstraction caching
                 self.graphs[-1].safe(cache=False)
                 self.graphs[-1].to_png()

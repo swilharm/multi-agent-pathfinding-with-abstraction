@@ -26,12 +26,15 @@ center_edge(C1,C2) :- center_edge(C2,C1).
 center_start(R,C) :- start(R,V), group(C,V).
 center_goal(G,C) :- goal(G,V), group(C,V).
 
+% dectect the number of disjoint subgraphs (when none of center has any edge between them)
+disjoint(C) :- C = #count{ I : center(I) }, C > 1, not center_edge(_,_).
+
 #external grid.
 #show.
 #show center_edge(C1,C2) : center_edge(C1,C2), not grid.
 #show center(I) : center(I), not grid.
 #show group(C,V) : group(C,V), not grid.
-
+#show disjoint(C) : disjoint(C), not grid.
 % Alternative output that can be fed into the next iteration
 %#show vertex(V) : center(V), not grid.
 %#show edge(V1,V2) : center_edge(V1,V2), not grid.

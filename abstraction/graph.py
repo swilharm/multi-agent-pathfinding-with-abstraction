@@ -14,6 +14,8 @@ class Graph():
         self.child_vertices = dict()
         self.starts = set()
         self.goals = set()
+        # assuming there's no disjoint graphs like in N006.lp (1 means one connected graph, 2 means 2 connected subgraphs are disjoint from each other)
+        self.disjoint_subgraphs = 1
         
     def add_vertex(self, vertex):
         self.vertices.add(vertex)
@@ -129,7 +131,7 @@ class Graph():
                     graph.add_start(atom.arguments[0].number, atom.arguments[1].number)
                 elif atom.match("goal", 2):
                     graph.add_goal(atom.arguments[0].number, atom.arguments[1].number)
-        
+                        
         prg = Control(["--warn", "no-atom-undefined"])
         prg.load(instance)
         if grid:
@@ -153,8 +155,11 @@ class Graph():
                 elif atom.match("group", 2):
                     self.set_parent(atom.arguments[1].number, atom.arguments[0].number)
                     graph.add_child(atom.arguments[0].number, atom.arguments[1].number)
+                elif atom.match("disjoint", 1):
+                    self.disjoint_subgraphs = atom.arguments[0].number
+        
             graph.positions = self.positions
-                    
+
         centers = int(len(self.vertices)/5)
         ret = None
         while (ret is None or not ret.satisfiable):
@@ -167,4 +172,5 @@ class Graph():
             ctl.ground([("abstraction", [Number(centers)])])
             ret = ctl.solve(on_model=parse)
             centers += 1
-        return graph
+
+        return self.disjoint_subgraphs, graph
