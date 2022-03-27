@@ -24,7 +24,7 @@ class Abstraction():
                 print("Found cached abstraction level", i)
             except FileNotFoundError:
                 print("\nGenerating abstraction level", i)
-                disjoint_graphs, abstracted_graph = self.graphs[-1].abstract_graph(args.abstraction)
+                disjoint_graphs, abstracted_graph = self.graphs[-1].abstract_graph_incremental(args.abstraction)
                 self.graphs.append(abstracted_graph)
                 # Set cache to True to enable abstraction caching
                 self.graphs[-1].safe(cache=False)
@@ -37,7 +37,7 @@ class Abstraction():
         start_solve = time.time()
         print("\nFinding paths on abstraction level", len(self.graphs)-1)
         solving_step = SolvingStep(len(self.graphs)-1)
-        solving_step.solve(args.solver, self.graphs[-1])
+        solving_step.solve(args.solver, self.graphs[-1], len(self.graphs[-1].starts))
         self.solving_steps[len(self.graphs)-1] = solving_step
         for level in reversed(range(len(self.graphs)-1)):
             print("\nFinding paths on abstraction level", level)
@@ -53,9 +53,9 @@ class Abstraction():
                     for vertex in previous_step.visited[robot]:
                         visited.update(self.graphs[level+1].child_vertices[vertex])
                 # Generate corresponding subgraph
-                graph = self.graphs[level].get_subgraph(list(visited), robots, goals)
+                graph = self.graphs[level].get_subgraph(list(visited), self.graphs[level+1].child_vertices[start_goal[0]], self.graphs[level+1].child_vertices[start_goal[1]])
                 # Solve subproblem and add to plan
-                solving_step.solve(args.solver, graph)
+                solving_step.solve(args.solver, graph, len(robots))
             # Print out combined paths in right order
             print(*(str(atom)+'.' for atom in sorted(solving_step.plan, key=lambda move: (move.arguments[3].number, move.arguments[0].number))))
         end_solve = time.time()

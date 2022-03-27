@@ -14,6 +14,7 @@ class Graph():
         self.child_vertices = dict()
         self.starts = set()
         self.goals = set()
+        self.optimality_proven = False
         # assuming there's no disjoint graphs like in N006.lp (1 means one connected graph, 2 means 2 connected subgraphs are disjoint from each other)
         self.disjoint_subgraphs = 1
         
@@ -43,16 +44,24 @@ class Graph():
     def add_goal(self, goal, vertex):
         self.goals.add((goal, vertex))
         
-    def get_subgraph(self, vertices, robots=[], goals=[]):
+    def clear(self):
+        self.vertices.clear()
+        self.edges.clear()
+        self.parent_vertices.clear()
+        self.child_vertices.clear()
+        self.starts.clear()
+        self.goals.clear()
+        
+    def get_subgraph(self, vertices, start_vertices, goal_vertices):
         subgraph = Graph(vertices)
         for edge in self.edges:
             if edge[0] in vertices and edge[1] in vertices:
                 subgraph.add_edge(edge[0], edge[1])
         for start in self.starts:
-            if start[0] in robots:
+            if start[1] in start_vertices:
                 subgraph.add_start(start[0], start[1])
         for goal in self.goals:
-            if goal[0] in goals:
+            if goal[1] in goal_vertices:
                 subgraph.add_goal(goal[0], goal[1])
         return subgraph
         
@@ -77,7 +86,7 @@ class Graph():
         with open(path+self.name+'_'+str(self.level)+'.lp', 'w') as file:
             file.write(self.to_asp(add_nodes=True).replace(' ', '\n'))
         if cache:
-            with open(path+self.name+'_'+str(self.level)+'.pickle', 'wb') as file:
+            with open(path+'/'+self.name+'_'+str(self.level)+'.pickle', 'wb') as file:
                 pickle.dump(self,file)
         
     def to_dot(self):
@@ -107,7 +116,7 @@ class Graph():
             pass
         with open(path+"/.temp.graph", 'w') as file:
             file.write(self.to_dot())
-        os.system(f"neato {path}/.temp.graph -Tpng > {path+self.name+'_'+str(self.level)}.png")
+        os.system(f"neato {path}/.temp.graph -Tpng > {path+'/'+self.name+'_'+str(self.level)}.png")
         os.remove(path+"/.temp.graph")
         
     def __str__(self):
@@ -140,9 +149,10 @@ class Graph():
         prg.solve(on_model=parse)
         return graph
         
-    def abstract_graph(self, abstraction):
+    def abstract_graph_incremental(self, abstraction):
         graph = Graph(self.name, self.level+1)
         def parse(model):
+            graph.optimality_proven = True
             for atom in model.symbols(atoms=True):
                 if atom.match("center", 1):
                     graph.add_vertex(atom.arguments[0].number)
@@ -157,7 +167,6 @@ class Graph():
                     graph.add_child(atom.arguments[0].number, atom.arguments[1].number)
                 elif atom.match("disjoint", 1):
                     self.disjoint_subgraphs = atom.arguments[0].number
-        
             graph.positions = self.positions
 
         centers = int(len(self.vertices)/5)
@@ -172,5 +181,36 @@ class Graph():
             ctl.ground([("abstraction", [Number(centers)])])
             ret = ctl.solve(on_model=parse)
             centers += 1
+        return self.disjoint_subgraphs, graph
+        
+    def abstract_graph_optimize(self, abstraction, timeout=10):
+        graph = Graph(self.name, self.level+1)
+        def parse(model):
+            graph.clear()
+            self.parent_vertices.clear()
+            graph.optimality_proven = model.optimality_proven
+            for atom in model.symbols(atoms=True):
+                if atom.match("center", 1):
+                    graph.add_vertex(atom.arguments[0].number)
+                elif atom.match("center_edge", 2):
+                    graph.add_edge(atom.arguments[0].number, atom.arguments[1].number)
+                elif atom.match("center_start", 2):
+                    graph.add_start(atom.arguments[0].number, atom.arguments[1].number)
+                elif atom.match("center_goal", 2):
+                    graph.add_goal(atom.arguments[0].number, atom.arguments[1].number)
+                elif atom.match("group", 2):
+                    self.set_parent(atom.arguments[1].number, atom.arguments[0].number)
+                    graph.add_child(atom.arguments[0].number, atom.arguments[1].number)
+                elif atom.match("disjoint", 1):
+                    self.disjoint_subgraphs = atom.arguments[0].number
+            graph.positions = self.positions
 
+        ctl = Control(["--warn", "no-atom-undefined", "--heuristic=Domain", "--opt-mode=optN", "1"])
+        ctl.load(abstraction)
+        ctl.add("graph", [], self.to_asp())
+        ctl.ground([("base", []), ("graph", [])])
+        handle = ctl.solve(on_model=parse, async_=True)
+        handle.wait(timeout)
+        handle.cancel()
+        handle.get()
         return self.disjoint_subgraphs, graph
