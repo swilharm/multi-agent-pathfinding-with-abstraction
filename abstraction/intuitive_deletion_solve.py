@@ -7,6 +7,7 @@ class Abstraction():
         self.graphs = []
         self.cached_graphs = []
         self.solving_steps = dict()
+        self.nodes = ''
 
     def main(self, args):
         #ABSTRACT
@@ -15,6 +16,7 @@ class Abstraction():
         disjoint_graphs = 1
         self.graphs.append(Graph.build_graph_from_instance(args.instance, "circles"))
         self.graphs[-1].to_png()
+        self.nodes = self.graphs[-1].nodes
         i = 1
         # stop abstracting when there're no more edges between the abstracted vertices (to allow abstraction of disjoint graphs)
         while len(self.graphs[-1].vertices) > disjoint_graphs:
@@ -61,7 +63,7 @@ class Abstraction():
                     starts.update(self.graphs[level+1].child_vertices[start_goal[0]])
                     goals.update(self.graphs[level+1].child_vertices[start_goal[1]])
                 graph = self.graphs[level].get_subgraph(list(visited), starts, goals)
-                solving_step.solve(args.solver, graph, len(all_robots), level==0, self.graphs[-1].nodes)
+                solving_step.solve(args.solver, graph, len(all_robots), level==0, self.nodes)
             else:
                 for start_goal in previous_step.assignments:
                     # Determine all robots with the selected goal vertex

@@ -34,12 +34,14 @@ class SolvingStep():
                 self._assignments[(start_vertex, goal_vertex)].add((robot_id,goal_id))
             elif atom.match("move", 4):
                 self._plan.append(atom)
-                
+
     def solve(self, solver, graph, robotsMoving=0, is_ground_level = False, nodes = ''):
         ctl = Control(["--warn", "no-atom-undefined", "--heuristic=Domain", "--opt-mode=optN", "1"])
         ctl.load(solver)
         if is_ground_level:
-            input = graph.to_asp(True)
+            input = graph.to_asp(add_nodes=True)
+            if 'node' not in input:
+                input += nodes
         else:
             input = graph.to_asp()
         input += f"robotsMoving({robotsMoving}). "

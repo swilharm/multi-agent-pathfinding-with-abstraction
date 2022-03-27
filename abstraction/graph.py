@@ -73,9 +73,8 @@ class Graph():
         asp = ""
         if add_nodes:
             asp += self.nodes
-            # for vertex, position in self.positions.items():
-            #     asp += f"node({position[0]},{position[1]},{vertex}). "
-            
+            for vertex, position in self.positions.items():
+                asp += f"node({position[0]},{position[1]},{vertex}). "
         for vertex in self.vertices:
             asp += f"vertex({vertex}). "
         for edge in self.edges:
@@ -147,7 +146,7 @@ class Graph():
                     graph.add_start(atom.arguments[0].number, atom.arguments[1].number)
                 elif atom.match("goal", 2):
                     graph.add_goal(atom.arguments[0].number, atom.arguments[1].number)
-                        
+        
         prg = Control(["--warn", "no-atom-undefined"])
         prg.load(instance)
         if grid:
