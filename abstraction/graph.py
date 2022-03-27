@@ -15,6 +15,7 @@ class Graph():
         self.starts = set()
         self.goals = set()
         self.optimality_proven = False
+        self.nodes = ''
         # assuming there's no disjoint graphs like in N006.lp (1 means one connected graph, 2 means 2 connected subgraphs are disjoint from each other)
         self.disjoint_subgraphs = 1
         
@@ -26,7 +27,10 @@ class Graph():
         self.vertices.add(b)
         if not (b,a) in self.edges:
             self.edges.add((a,b))
-        
+
+    def add_node(self, x, y, vertex):
+        self.nodes += 'node('+str(x)+','+str(y)+','+str(vertex)+'). '
+
     def set_position(self, vertex, x, y):
         self.positions[vertex] = (x,y)
         
@@ -68,8 +72,10 @@ class Graph():
     def to_asp(self, add_nodes=False):
         asp = ""
         if add_nodes:
-            for vertex, position in self.positions.items():
-                asp += f"node({position[0]},{position[1]},{vertex}). "
+            asp += self.nodes
+            # for vertex, position in self.positions.items():
+            #     asp += f"node({position[0]},{position[1]},{vertex}). "
+            
         for vertex in self.vertices:
             asp += f"vertex({vertex}). "
         for edge in self.edges:
@@ -136,6 +142,7 @@ class Graph():
                     graph.add_edge(atom.arguments[0].number, atom.arguments[1].number)
                 elif atom.match("node", 3):
                     graph.set_position(atom.arguments[2].number, atom.arguments[0].number, atom.arguments[1].number)
+                    graph.add_node(atom.arguments[0].number, atom.arguments[1].number,atom.arguments[2].number)
                 elif atom.match("start", 2):
                     graph.add_start(atom.arguments[0].number, atom.arguments[1].number)
                 elif atom.match("goal", 2):

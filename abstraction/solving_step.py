@@ -35,10 +35,13 @@ class SolvingStep():
             elif atom.match("move", 4):
                 self._plan.append(atom)
                 
-    def solve(self, solver, graph, robotsMoving=0):
+    def solve(self, solver, graph, robotsMoving=0, is_ground_level = False, nodes = ''):
         ctl = Control(["--warn", "no-atom-undefined", "--heuristic=Domain", "--opt-mode=optN", "1"])
         ctl.load(solver)
-        input = graph.to_asp()
+        if is_ground_level:
+            input = graph.to_asp(True)
+        else:
+            input = graph.to_asp()
         input += f"robotsMoving({robotsMoving}). "
         for vertices in self.assignments:
             for ids in self.assignments[vertices]:
@@ -54,6 +57,8 @@ class SolvingStep():
                 ctl.release_external(Function("query", [Number(step-1)]))
                 parts.append(("step", [Number(step)]))
             ctl.ground(parts)
+            if is_ground_level:
+                ctl.ground([("lvl", [Number(0)])])
             ctl.assign_external(Function("query", [Number(step)]), True)
             handle = ctl.solve(on_model=self.extract_path, async_=True)
             handle.wait(1)

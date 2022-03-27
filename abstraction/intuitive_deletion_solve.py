@@ -37,25 +37,43 @@ class Abstraction():
         start_solve = time.time()
         print("\nFinding paths on abstraction level", len(self.graphs)-1)
         solving_step = SolvingStep(len(self.graphs)-1)
-        solving_step.solve(args.solver, self.graphs[-1], len(self.graphs[-1].starts))
+        solving_step.solve(args.solver, self.graphs[-1], len(self.graphs[-1].starts), False)
         self.solving_steps[len(self.graphs)-1] = solving_step
         for level in reversed(range(len(self.graphs)-1)):
             print("\nFinding paths on abstraction level", level)
-            # Split planning into start/goal combinations and plan robots together that are moving together
             previous_step = self.solving_steps[level+1]
             solving_step = SolvingStep(level)
             self.solving_steps[level] = solving_step
-            for start_goal in previous_step.assignments:
-                # Determine all robots with the selected goal vertex
-                robots, goals = zip(*previous_step.assignments[start_goal])
+            # at base level, solve all together to avoid conflicts
+            if level == 0:
+                all_assignments = set()
+                all_robots = set()
                 visited = set()
-                for robot in robots:
+                for start_goal in previous_step.assignments:
+                    robots, goals = zip(*previous_step.assignments[start_goal])
+                    all_robots.update(robots)
+                for robot in all_robots:
                     for vertex in previous_step.visited[robot]:
                         visited.update(self.graphs[level+1].child_vertices[vertex])
-                # Generate corresponding subgraph
-                graph = self.graphs[level].get_subgraph(list(visited), self.graphs[level+1].child_vertices[start_goal[0]], self.graphs[level+1].child_vertices[start_goal[1]])
-                # Solve subproblem and add to plan
-                solving_step.solve(args.solver, graph, len(robots))
+                starts = set()
+                goals = set()
+                for start_goal in previous_step.assignments:
+                    starts.update(self.graphs[level+1].child_vertices[start_goal[0]])
+                    goals.update(self.graphs[level+1].child_vertices[start_goal[1]])
+                graph = self.graphs[level].get_subgraph(list(visited), starts, goals)
+                solving_step.solve(args.solver, graph, len(all_robots), level==0, self.graphs[-1].nodes)
+            else:
+                for start_goal in previous_step.assignments:
+                    # Determine all robots with the selected goal vertex
+                    robots, goals = zip(*previous_step.assignments[start_goal])
+                    visited = set()
+                    for robot in robots:
+                        for vertex in previous_step.visited[robot]:
+                            visited.update(self.graphs[level+1].child_vertices[vertex])
+                    # Generate corresponding subgraph
+                    graph = self.graphs[level].get_subgraph(list(visited), self.graphs[level+1].child_vertices[start_goal[0]], self.graphs[level+1].child_vertices[start_goal[1]])
+                    # Solve subproblem and add to plan
+                    solving_step.solve(args.solver, graph, len(robots), level==0, self.graphs[-1].nodes)
             # Print out combined paths in right order
             print(*(str(atom)+'.' for atom in sorted(solving_step.plan, key=lambda move: (move.arguments[3].number, move.arguments[0].number))))
         end_solve = time.time()

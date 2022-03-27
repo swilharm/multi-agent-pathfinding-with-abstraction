@@ -18,17 +18,22 @@ at(R,V,0) :- start(R,V).
 at(R,V2,t) :- move(R,V1,V2,t).
 at(R,V1,t) :- at(R,V1,t-1), not move(R,V1,_,t).
 
-#program conflicts(t).
-:- at(R1,V,t), at(R2,V,t), R1<R2.
-:- at(R1,V1,t-1), at(R1,V2,t), at(R2,V2,t-1), at(R2,V1,t), R1<R2.
-:- at(R1,V1,t-1), at(R2,V2,t-1), at(R1,V3,t), at(R2,V4,t),
-	node(X,Y,V1), node(X+1,Y,V2), node(X+1,Y+1,V3), node(X,Y+1,V4).
-:- at(R1,V1,t-1), at(R2,V2,t-1), at(R1,V3,t), at(R2,V4,t),
-	node(X,Y,V1), node(X+1,Y,V2), node(X+1,Y-1,V3), node(X,Y-1,V4).
-:- at(R1,V1,t-1), at(R2,V2,t-1), at(R1,V3,t), at(R2,V4,t),
-	node(X,Y,V1), node(X,Y+1,V2), node(X+1,Y+1,V3), node(X+1,Y,V4).
-:- at(R1,V1,t-1), at(R2,V2,t-1), at(R1,V3,t), at(R2,V4,t),
-	node(X,Y,V1), node(X,Y+1,V2), node(X-1,Y+1,V3), node(X-1,Y,V4).
+% conflict only applies to original graph at level 0 (no abstraction) 
+#program lvl(l).
+level(l).
+% vertex conflict
+:- at(R1,V,T), at(R2,V,T), R1<R2, level(0). 
+% edge conflict
+:- at(R1,V1,T-1), at(R1,V2,T), at(R2,V2,T-1), at(R2,V1,T), R1<R2, level(0).
+% path crossing conflict
+:- at(R1,V1,T-1), at(R2,V2,T-1), at(R1,V3,T), at(R2,V4,T),
+	node(X,Y,V1), node(X+1,Y,V2), node(X+1,Y+1,V3), node(X,Y+1,V4), level(0).
+:- at(R1,V1,T-1), at(R2,V2,T-1), at(R1,V3,T), at(R2,V4,T),
+	node(X,Y,V1), node(X+1,Y,V2), node(X+1,Y-1,V3), node(X,Y-1,V4), level(0).
+:- at(R1,V1,T-1), at(R2,V2,T-1), at(R1,V3,T), at(R2,V4,T),
+	node(X,Y,V1), node(X,Y+1,V2), node(X+1,Y+1,V3), node(X+1,Y,V4), level(0).
+:- at(R1,V1,T-1), at(R2,V2,T-1), at(R1,V3,T), at(R2,V4,T),
+	node(X,Y,V1), node(X,Y+1,V2), node(X-1,Y+1,V3), node(X-1,Y,V4), level(0).
 
 #program check(t).
 #external query(t).
