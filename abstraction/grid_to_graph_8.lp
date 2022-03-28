@@ -16,6 +16,7 @@ goal(GI,VI) :- shelf(X,Y,GI), node(X,Y,VI).
 
 #external abstraction.
 #show.
+#show node(X,Y,I) : node(X,Y,I), not abstraction.
 #show edge(V1,V2) : edge(V1,V2), not abstraction.
 #show vertex(V) : vertex(V), not abstraction.
 #show start(SI,VI) : start(SI,VI), not abstraction.
